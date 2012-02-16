@@ -230,7 +230,7 @@ test("required", function() {
 test("required with dependencies", function() {
 	var v = jQuery("#form").validate(),
 		method = $.validator.methods.required,
-    	e = $('#hidden2, #select1, #area2, #radio1, #check2');
+		e = $('#hidden2, #select1, #area2, #radio1, #check2');
 	ok( method.call( v, e[0].value, e[0], "asffsaa"), "Valid text input due to depencie not met" );
 	ok(!method.call( v, e[0].value, e[0], "input"), "Invalid text input" );
 	ok( method.call( v, e[0].value, e[0], function() { return false; }), "Valid text input due to depencie not met" );
@@ -424,7 +424,7 @@ test("remote, customized ajax options", function() {
 					data: {
 						email: function() {
 							return "email.com";
-						}
+						},
 					},
 					complete: function() {
 						start();
@@ -470,6 +470,48 @@ test("remote extensions", function() {
 	e.val("asdf");
 	ok( !v.element(e), "still invalid, because remote validation must block until it returns" );
 });
+
+/* users3.php:
+<?php
+header('Content-Type: application/json');
+?>[false, "asdf is already taken, please try something else"]
+*/
+test("remote json response testSuccess & getErrorMessage callbacks", function() {
+	expect(5);
+	stop();
+	var e = $("#username");
+	var v = $("#userForm").validate({
+		rules: {
+			username: {
+				required: true,
+				remote: {
+					url: "users3.php"
+					successTest: function(response) {
+						return response === true;
+					},
+					getInvalidMessage: function(response) {
+						return "FAILURE:" + response
+					}
+				}
+			}
+		},
+		submitHandler: function() {
+			ok( false, "submitHandler may never be called when validating only elements");
+		}
+	});
+	$(document).ajaxStop(function() {
+		$(document).unbind("ajaxStop");
+		equals( 1, v.size(), "There must be one error" );
+		equals( v.errorList[0].message, "FAILURE: asdf is already taken, please try something else" );
+		v.element(e);
+		equals( v.errorList[0].message, "FAILURE: asdf is already taken, please try something else", "message doesn't change on revalidation" );
+		start();
+	});
+	ok( !v.element(e), "invalid element, nothing entered yet" );
+	e.val("asdf");
+	ok( !v.element(e), "still invalid, because remote validation must block until it returns" );
+});
+
 
 module("additional methods");
 
